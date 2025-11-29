@@ -4,6 +4,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // helper: create initials from an email or name
+  function getInitials(text) {
+    if (!text) return "–";
+    const name = text.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "");
+    const parts = name.split(/[\s._-]+/).filter(Boolean);
+    const first = parts[0] ? parts[0][0] : name[0];
+    const second = parts[1] ? parts[1][0] : (name[1] || "");
+    return (first + second).toUpperCase();
+  }
+
+  // helper: escape text to avoid injection into innerHTML
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -20,11 +40,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // build participants markup
+        let participantsMarkup = "";
+        if (details.participants && details.participants.length > 0) {
+          const items = details.participants
+            .map(
+              (p) =>
+                `<li class="participant-item"><span class="participant-avatar">${getInitials(
+                  p
+                )}</span><span class="participant-email">${escapeHtml(p)}</span></li>`
+            )
+            .join("");
+          participantsMarkup = `<ul class="participants-list">${items}</ul>`;
+        } else {
+          participantsMarkup = `<div class="no-participants">No participants yet.</div>`;
+        }
+
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${escapeHtml(name)}</h4>
+          <p>${escapeHtml(details.description)}</p>
+          <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+
+          <div class="participants-section" aria-label="Participants for ${escapeHtml(name)}">
+            <div class="participants-title">Participants <span class="participants-count">(${details.participants.length})</span></div>
+            ${participantsMarkup}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
