@@ -32,6 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      // Reset activity select so we don't duplicate options on refresh
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -44,12 +46,16 @@ document.addEventListener("DOMContentLoaded", () => {
         let participantsMarkup = "";
         if (details.participants && details.participants.length > 0) {
           const items = details.participants
-            .map(
-              (p) =>
-                `<li class="participant-item"><span class="participant-avatar">${getInitials(
-                  p
-                )}</span><span class="participant-email">${escapeHtml(p)}</span></li>`
-            )
+              .map(
+                (p) =>
+                  `<li class="participant-item" data-activity="${escapeHtml(name)}" data-email="${escapeHtml(
+                    p
+                  )}"><span class="participant-avatar">${getInitials(p)}</span><span class="participant-email">${escapeHtml(
+                    p
+                  )}</span><button type="button" class="participant-delete" title="Unregister ${escapeHtml(
+                    p
+                  )}" aria-label="Unregister ${escapeHtml(p)}">✖</button></li>`
+              )
             .join("");
           participantsMarkup = `<ul class="participants-list">${items}</ul>`;
         } else {
@@ -101,11 +107,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (response.ok) {
         messageDiv.textContent = result.message;
-        messageDiv.className = "success";
+        messageDiv.className = "message success";
         signupForm.reset();
+
+        // Refresh activity list so the new participant appears immediately
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        messageDiv.className = "message error";
       }
 
       messageDiv.classList.remove("hidden");
@@ -116,9 +125,55 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 5000);
     } catch (error) {
       messageDiv.textContent = "Failed to sign up. Please try again.";
-      messageDiv.className = "error";
+      messageDiv.className = "message error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Handle click events for participant delete buttons (event delegation)
+  activitiesList.addEventListener("click", async (event) => {
+    const deleteBtn = event.target.closest(".participant-delete");
+    if (!deleteBtn) return;
+
+    const li = deleteBtn.closest(".participant-item");
+    if (!li) return;
+
+    const email = li.dataset.email;
+    const activity = li.dataset.activity;
+
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/participant?email=${encodeURIComponent(email)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        messageDiv.textContent = result.message;
+        messageDiv.className = "message success";
+      } else {
+        messageDiv.textContent = result.detail || "An error occurred while unregistering";
+        messageDiv.className = "message error";
+      }
+
+      messageDiv.classList.remove("hidden");
+
+      // Refresh the activities list (and the select) so UI updates
+      fetchActivities();
+
+      // Hide message after 4 seconds
+      setTimeout(() => {
+        messageDiv.classList.add("hidden");
+      }, 4000);
+    } catch (error) {
+      messageDiv.textContent = "Failed to unregister. Please try again.";
+      messageDiv.className = "message error";
+      messageDiv.classList.remove("hidden");
+      console.error("Error unregistering:", error);
     }
   });
 

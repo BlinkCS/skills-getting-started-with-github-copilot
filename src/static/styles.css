@@ -190,6 +190,28 @@ footer {
   box-shadow: 0 1px 2px rgba(24, 39, 120, 0.03);
 }
 
+/* delete button in participant badge */
+.participant-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+}
+
+.participant-delete:hover {
+  background: rgba(198, 40, 40, 0.08);
+}
+
 .participant-avatar {
   display: inline-flex;
   align-items: center;
